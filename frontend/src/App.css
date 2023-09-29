@@ -1,0 +1,85 @@
+/*.Result {*/
+/*    width: 65%;*/
+/*    display: block;*/
+/*}*/
+
+/*.image-gallery {*/
+/*    height: 65%;*/
+/*}*/
+
+/*App*/
+.App {
+    text-align: center;
+}
+
+.App-header {
+    background-color: #282c34;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-size: calc(10px + 2vmin);
+    color: white;
+}
+
+#form-file-upload {
+    height: 16rem;
+    width: 28rem;
+    max-width: 100%;
+    text-align: center;
+    position: relative;
+}
+
+#file-upload {
+    display: none;
+}
+
+#label-file-upload {
+    padding: 50px;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-width: 2px;
+    border-radius: 1rem;
+    border-style: dashed;
+    border-color: #969696;
+    background-color: #333333;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+#label-file-upload.drag-active {
+    border-color: #6c6c6c;
+    background-color: #171717;
+}
+
+.drag-overlay {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    border-radius: 1rem;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+}
+
+.upload-button svg {
+    margin-right: 8px;
+}
+
+.upload-button {
+    cursor: pointer;
+    padding: 0.25rem;
+    font-size: 3rem;
+    color: #cbd5e1;
+    border: none;
+    font-family: 'Oswald', sans-serif;
+    background-color: transparent;
+}
+
+.upload-button:hover {
+    text-decoration-line: underline;
+}
+
