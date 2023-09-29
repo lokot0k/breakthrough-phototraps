@@ -1,252 +1,120 @@
-import json
-import pandas as pd
-import numpy as np
+import os
+import shutil
+from django.core.files import locks
+from django.core.files.base import ContentFile, File
+from django.core.files.move import file_move_safe
+from django.db import models
+from django.forms import forms
 from django.http import HttpRequest, JsonResponse, HttpResponse
 from django.views import View
-
-from sklearn.cluster import AgglomerativeClustering
-from sentence_transformers import SentenceTransformer
-from sklearn.metrics.pairwise import cosine_similarity
-
-from transformers import AutoTokenizer, \
-    AutoModelForSequenceClassification, BertTokenizer, \
-    BertForSequenceClassification, AutoModelForSeq2SeqLM, T5TokenizerFast
-
-import torch
-
-from spellchecker import SpellChecker
+from django.core.files.storage import DefaultStorage
+from django.conf import settings
+import zipfile
+import csv
+from PIL import Image
 
 
-class GarageModel:
-    def __init__(self):
-        self.tokenizer_main = AutoTokenizer.from_pretrained(
-            'sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2')
-        self.model = SentenceTransformer(
-            'sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2')
-        self.cluster_model = AgglomerativeClustering(metric="cosine",
-                                                     linkage="average",
-                                                     n_clusters=None,
-                                                     distance_threshold=0.25)
-
-        self.device = "cuda" if torch.cuda.is_available() else "cpu"
-
-        self.sent_tokenizer = AutoTokenizer.from_pretrained(
-            'cointegrated/rubert-tiny-sentiment-balanced')
-        self.sent_model = AutoModelForSequenceClassification.from_pretrained(
-            'cointegrated/rubert-tiny-sentiment-balanced')
-
-        self.toxic_tokenizer = BertTokenizer.from_pretrained(
-            'SkolkovoInstitute/russian_toxicity_classifier')
-        self.toxic_model = BertForSequenceClassification.from_pretrained(
-            'SkolkovoInstitute/russian_toxicity_classifier')
-        self.QA_model = SentenceTransformer('clips/mfaq')
-        self.SC_MODEL_NAME = 'UrukHan/t5-russian-spell'
-        self.SC_MAX_INPUT = 512
-        self.sc_tokenizer = T5TokenizerFast.from_pretrained(self.SC_MODEL_NAME)
-        self.sc_model = AutoModelForSeq2SeqLM.from_pretrained(
-            self.SC_MODEL_NAME)
-
-        if torch.cuda.is_available():
-            self.sent_model.cuda()
-            self.toxic_model.cuda()
-
-        # Загрузка фильтра "плохих" слов
-        self.bad_words = []
-
-        # with open("bad_words.txt", "r", encoding='utf-8') as f:
-        #     self.bad_words = f.readlines()
-        #     self.bad_words = [word.replace("\n", "").strip() for word in self.bad_words]
-
-        self.spell = SpellChecker(language=['ru'])
-
-    def check_spelling(self, input_sequences: list):
-        task_prefix = "Spell correct: "
-        if type(input_sequences) != list: input_sequences = [input_sequences]
-        encoded = self.sc_tokenizer(
-            [task_prefix + sequence for sequence in input_sequences],
-            padding="longest",
-            max_length=self.SC_MAX_INPUT,
-            truncation=True,
-            return_tensors="pt",
-        )
-        # Прогнозирование
-        predicts = self.sc_model.generate(
-            **encoded.to(self.device))  # device вроде выше задан
-        # Декодируем данные
-        return self.sc_tokenizer.batch_decode(predicts,
-                                              skip_special_tokens=True)
-
-    def correct(self, text):
-        text_corr = ""
-        for word in text.split():
-            word = self.clean(word)
-            a = self.spell.correction(word) if len(word) >= 2 else word
-            text_corr += a + " " if a else word + " "
-        text_corr = text_corr[:-1]
-        return text_corr
-
-    def preprocess(self, text: str, censor=True, check_spelling=False):
-        txt = self.correct(self.clean(text)) if check_spelling else self.clean(
-            text)
-        if censor:
-            if self.get_is_toxic(txt):
-                txt = "***"
-        return txt
-
-    def check_text(self, text):
-        text = self.clean(text.lower())
-        corr_text = ""
-        for word in text.split(' '):
-            translit_word = self.replace_english_letters(word)
-            is_bad, similarity_ratio = self.is_bad_word(self.bad_words,
-                                                        translit_word)
-            if is_bad:
-                corr_text += "*" * len(word)
+class MyStorage(DefaultStorage):
+    def _save(self, name, content):
+        full_path = self.path(name)
+        # Create any intermediate directories that do not exist.
+        directory = os.path.dirname(full_path)
+        try:
+            if self.directory_permissions_mode is not None:
+                # Set the umask because os.makedirs() doesn't apply the "mode"
+                # argument to intermediate-level directories.
+                old_umask = os.umask(0o777 & ~self.directory_permissions_mode)
+                try:
+                    os.makedirs(
+                        directory, self.directory_permissions_mode,
+                        exist_ok=True
+                    )
+                finally:
+                    os.umask(old_umask)
             else:
-                corr_text += translit_word
-            corr_text += " "
-        return corr_text[:-1]
+                os.makedirs(directory, exist_ok=True)
+        except FileExistsError:
+            raise FileExistsError(
+                "%s exists and is not a directory." % directory)
 
-    def clean(self, text):
-        to_remove = "?/><,.|\\\":;\'=+_~`!@#$%^&*()№"
-        for i in to_remove:
-            text = text.replace(i, "")
-        return text
+        while True:
+            try:
+                # This file has a file path that we can move.
+                if hasattr(content, "temporary_file_path"):
+                    file_move_safe(content.temporary_file_path(), full_path,
+                                   allow_overwrite=True)
 
-    def get_sentiment(self, text):
-        with torch.no_grad():
-            inputs = self.sent_tokenizer(text, return_tensors='pt',
-                                         truncation=True, padding=True).to(
-                self.sent_model.device)
-            proba = torch.sigmoid(
-                self.sent_model(**inputs).logits).cpu().numpy()
-        res = proba.dot([-1, 0, 1])
-        res[res > 0.3] = 1
-        res[res < -0.5] = -1
-        res[(res >= -0.5) * (res <= 0.3)] = 0
-        return res
-
-    def get_is_toxic(self, text):
-        batch = self.toxic_tokenizer.encode(text, return_tensors='pt')
-        return np.argmax(self.toxic_model(batch).logits.detach().numpy()) == 1
-
-    def replace_english_letters(self, text):
-        replacements = {
-            'a': 'а',
-            'b': 'в',
-            'e': 'е',
-            'k': 'к',
-            'm': 'м',
-            'h': 'н',
-            'o': 'о',
-            'p': 'р',
-            'c': 'с',
-            't': 'т',
-            'y': 'у',
-            'x': 'х'
-        }
-
-        for eng, rus in replacements.items():
-            text = text.replace(eng, rus)
-
-        return text
-
-    def get_middlest_word(self, ans_emb, words):  # для одного кластера
-        middle_point = ((ans_emb.sum(axis=0)) / len(ans_emb)).reshape(1, -1)
-        dist = np.linalg.norm(ans_emb - middle_point, axis=1)
-        return words[np.argmin(dist)]
-
-    def get_more_obvious(self, quest_emb, ans_emb, words):
-        res = np.argmax(cosine_similarity([quest_emb], ans_emb))
-        return words[res]
-
-    def read_json(self, parsed_json, censor=False, check_spelling=False,
-                  show_prints=False, middlest_point=True):
-        word2vec_model = self.model
-        cluster_model = self.cluster_model
-
-        question_id = parsed_json["id"]
-        question = parsed_json["question"]
-        answers = []
-        counts = []
-        corrected = []
-        for answer_item in parsed_json["answers"]:
-            answers.append(answer_item["answer"])
-
-            corrected.append(
-                self.preprocess(answers[-1], censor, False))
-            counts.append(answer_item["count"])
-        sentiment = self.get_sentiment(answers)
-        if check_spelling:
-            corrected = self.check_spelling(corrected)
-            corrected = [self.clean(i).lower() for i in corrected]
-
-        if show_prints:
-            print(corrected)
-            print(counts)
-            print(question)
-            print(question_id)
-            print(sentiment)
-        if len(corrected) == 1:
-            df = pd.DataFrame(
-                {"answers": answers, "counts": counts, "cluster": corrected,
-                 "sentiment": sentiment, "corrected": corrected})
-        else:
-            embeddings = word2vec_model.encode(corrected)
-            clusters_pred = cluster_model.fit_predict(embeddings)
-            if show_prints:
-                print("Embeddings.shape", embeddings.shape)
-                print(clusters_pred)
-
-            if not middlest_point:
-                embbbbb = self.QA_model.encode(
-                    np.hstack([np.array([question]), answers]))
-                embeddings = embbbbb[1:]
-
-            df = pd.DataFrame({"answers": answers, "counts": counts,
-                               "cluster": clusters_pred,
-                               "sentiment": sentiment,
-                               "corrected": corrected}).join(
-                pd.DataFrame(embeddings))
-
-            replacer = {}
-
-            for cluster in set(clusters_pred):
-                cluster_df = df[df["cluster"] == cluster]
-                temp_ditch = cluster_df.iloc[:, 5:].values
-                if middlest_point:
-                    clus_word = self.get_middlest_word(temp_ditch, list(
-                        cluster_df.corrected.values))
+                # This is a normal uploadedfile that we can stream.
                 else:
-                    clus_word = self.get_more_obvious(embbbbb[0], temp_ditch,
-                                                      list(
-                                                          cluster_df.corrected.values))
-                replacer[cluster] = clus_word
+                    # The current umask value is masked out by os.open!
+                    fd = os.open(full_path, self.OS_OPEN_FLAGS, 0o666)
+                    _file = None
+                    try:
+                        locks.lock(fd, locks.LOCK_EX)
+                        for chunk in content.chunks():
+                            if _file is None:
+                                mode = "wb" if isinstance(chunk,
+                                                          bytes) else "wt"
+                                _file = os.fdopen(fd, mode)
+                            _file.write(chunk)
+                    finally:
+                        locks.unlock(fd)
+                        if _file is not None:
+                            _file.close()
+                        else:
+                            os.close(fd)
+            except FileExistsError:
+                # A new name is needed if the file exists.
+                full_path = self.path(name)
+                os.remove(full_path)
+                fd = os.open(full_path, self.OS_OPEN_FLAGS, 0o666)
+                _file = None
+                try:
+                    locks.lock(fd, locks.LOCK_EX)
+                    for chunk in content.chunks():
+                        if _file is None:
+                            mode = "wb" if isinstance(chunk, bytes) else "wt"
+                            _file = os.fdopen(fd, mode)
+                        _file.write(chunk)
+                finally:
+                    locks.unlock(fd)
+                    if _file is not None:
+                        _file.close()
+                    else:
+                        os.close(fd)
+                    break
+            else:
+                # OK, the file save worked. Break out of the loop.
+                break
 
-            df["cluster"].replace(replacer, inplace=True)
+        if self.file_permissions_mode is not None:
+            os.chmod(full_path, self.file_permissions_mode)
 
-        sentiment_replacer = {-1: "negatives", 1: "positives",
-                              0: "neutrals"}
-        df["sentiment"].replace(sentiment_replacer, inplace=True)
-        df = df[["answers", "counts", "cluster", "sentiment", "corrected"]]
+        # Ensure the saved path is always relative to the storage root.
+        name = full_path
+        # Ensure the moved file has the same gid as the storage root.
+        self._ensure_location_group_id(full_path)
+        # Store filenames with forward slashes, even on Windows.
+        return str(name).replace("\\", "/")
 
-        def make_dict(dataframe):
-            answers_json = []
-            for i in range(len(dataframe)):
-                line = dataframe.iloc[i]
-                answers_json.append({"answer": line["answers"],
-                                     "count": int(line["counts"]),
-                                     "cluster": line["cluster"],
-                                     "sentiment": line["sentiment"],
-                                     "corrected": line["corrected"]})
-            dictionary = {"question": question, "id": question_id,
-                          "answers": answers_json}
-            return dictionary
+    def save(self, name, content):
+        # Get the proper name for the file, as it will actually be saved.
+        if name is None:
+            name = content.name
 
-        return make_dict(df)
+        if not hasattr(content, "chunks"):
+            content = File(content, name)
+        shutil.rmtree(settings.MEDIA_ROOT)
+        name = self._save(name, content)
+        return name
 
 
-gg = GarageModel()
+class DocumentForm(forms.Form):
+    docfile = forms.FileField(label='Select a file')
+
+
+class Document(models.Model):
+    docfile = models.FileField(upload_to='documents/abc.zip')
 
 
 class MlView(View):
@@ -256,16 +124,49 @@ class MlView(View):
             {'success': 'false', 'message': 'unsupported method'}, status=403)
 
     def post(self, request: HttpRequest, *args, **kwargs) -> JsonResponse:
-        body = json.loads(request.body)
-        if 'fast' not in body or 'censure' not in body or 'data' not in body:
-            return JsonResponse({'success': 'false', 'message': 'Invalid data'},
-                                status=401)
-        mid_point = body['fast']
-        censor = body['censure']
-        autocorrect = body['correction']
-        return JsonResponse(
-            gg.read_json(body['data'], censor=censor, middlest_point=mid_point,
-                         check_spelling=autocorrect))
+        form = DocumentForm(request.POST, request.FILES)
+        if form.is_valid():
+            requ = request.FILES['docfile']
+            storage = MyStorage()
+            path = storage.save('abc.zip',
+                                ContentFile(requ.read()))
+            # разархивировать по path, грузануть в медиа. Собрать .csv в едины жсон респонс.
+            with zipfile.ZipFile(path,  # выгрузка
+                                 "r") as zip:
+                zip.extractall(settings.MEDIA_ROOT)
+
+            directory = os.fsencode(settings.MEDIA_ROOT)
+
+            for file in os.listdir(directory):
+                filename = os.fsdecode(file)
+                if filename.endswith(".png") or filename.endswith(
+                        ".jpg") or filename.endswith(".jpeg"):
+                    img = Image.open(storage.path(filename))
+                    x, y = img.size
+                    if x > 600 and y > 800:
+                        x = x // 2
+                        y = y // 2
+                        img = img.resize((x, y), Image.ANTIALIAS)
+                    img.save(storage.path(filename), quality=90)
+            empty_list = []
+            good_list = []
+            bad_list = []
+            with open(storage.path('result.csv'), 'r') as f:
+                reader = csv.reader(f, delimiter=" ")
+                for row in reader:
+                    if row[1] == "1":
+                        bad_list.append(storage.path(row[0]))
+                    elif row[2] == "1":
+                        empty_list.append(storage.path(row[1]))
+                    elif row[3] == "1":
+                        good_list.append(storage.path(row[2]))
+
+            return JsonResponse(
+                {"success": "true", "empty": empty_list, "animal": good_list,
+                 "broken": bad_list})
+        else:
+            return JsonResponse({"success": "false", "message": "плохо"},
+                                status=403)
 
     def head(self, request, *args, **kwargs):
         return JsonResponse(
@@ -273,4 +174,4 @@ class MlView(View):
 
     def put(self, request, *args, **kwargs):
         return JsonResponse(
-            {'success': 'false', 'message': 'unsupported method'}, status=403)
+            {'success': 'false', 'me ssage': 'unsupported method'}, status=403)
