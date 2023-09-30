@@ -53,21 +53,36 @@ def generate_submit(
 def generate_submission_folder(models: list, link_to_folder: str) -> list:
     paths = []
     label = []
+
+    broken_imges = []
     for i in os.listdir(link_to_folder):
         ext = os.path.splitext(i)[1].lower()
         if ext == '.png' or ext == '.jpg' or ext == '.jpeg' or ext == ".gif":
-            paths.append(i)
-            label.append(0)
+            try:
+                a = Image.open(os.path.join(link_to_folder, i)).load()
+                paths.append(i)
+                label.append(0)
+            except:
+                broken_imges.append(i)
     test_df = pd.DataFrame({"filename": paths, "label": label})
     test_dataset = TestDataset(test_df, link_to_folder, val_transform)
     test_loader = get_test_loader(test_dataset)
     pred = generate_submit(models, test_loader, 'third', visual=True)
+
+    brkn_df = pd.DataFrame({"filename": broken_imges, "broken": [1 for i in range(len(broken_imges))],
+                            "empty": [0 for i in range(len(broken_imges))],
+                            "animal": [0 for i in range(len(broken_imges))]})
     test_df["label"] = pred.astype(int)
     test_df["broken"] = (pred == 0).astype(int)
     test_df["empty"] = (pred == 1).astype(int)
     test_df["animal"] = (pred == 2).astype(int)
+    brkn_df["broken"] = brkn_df["broken"].astype(int)
+    brkn_df["empty"] = brkn_df["empty"].astype(int)
+    brkn_df["animal"] = brkn_df["animal"].astype(int)
 
-    test_df[["filename", "broken", "empty", "animal"]].to_csv(
+    test_df = test_df[["filename", "broken", "empty", "animal"]]
+    test_df = pd.concat([test_df, brkn_df])
+    test_df.to_csv(
         st.path("submission.csv"), index=False)
 
     return [list(test_df.iloc[i].values) for i in range(len(test_df))]

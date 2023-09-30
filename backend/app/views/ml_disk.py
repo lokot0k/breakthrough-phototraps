@@ -1,4 +1,5 @@
 import io
+import json
 import os
 from django.http import HttpRequest, JsonResponse, HttpResponse
 from django.views import View
@@ -48,7 +49,7 @@ class MlDiskView(View):
                 token.write(creds.to_json())
 
         service = build('drive', 'v3', credentials=creds)
-        folder_id = '1LjWvvTEKepJtJMya4kQj0MQ2hny94yyo'  # request.body.folder
+        folder_id = json.loads(request.body)['folder']  # request.body.folder
         print(st.path(""))
         download_files(service, folder_id, st.path(""))
 

@@ -26,6 +26,7 @@ export const loader = async (): Promise<Data | null> => {
         method: "GET",
     })
     let x = await response.json();
+    console.log(x)
     return response.ok ? x as Data : null;
 
 
@@ -109,8 +110,8 @@ export function Result() {
                     <MyInput filter={QualityTag.BROKEN} filterState={filter} onChangeFunc={changeFilterCheckbox}/>
                 </div>
                 <div className="buttons-container">
-                    <button><FontAwesomeIcon icon={solid("download")}/>Скачать CSV</button>
-                    <button><FontAwesomeIcon icon={solid("download")}/>Скачать ZIP</button>
+                    <a><FontAwesomeIcon icon={solid("download")}/>Скачать CSV</a>
+                    <a><FontAwesomeIcon icon={solid("download")}/>Скачать ZIP</a>
                 </div>
             </div>
             <div className="image-gallery-container">
