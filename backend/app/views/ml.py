@@ -67,18 +67,20 @@ class MlView(View):
             generate_submission_folder([model],
                                        settings.MEDIA_ROOT)  # вот эта строчка пример юзания
             for file in os.listdir(directory):
-                filename = os.fsdecode(file).lower()
+                filename = os.fsdecode(file)
                 if filename.lower().endswith(
                         ".png") or filename.lower().endswith(
                     ".jpg") or filename.lower().endswith(".jpeg"):
-
-                    img = Image.open(storage.path(filename))
-                    x, y = img.size
-                    if x > 600 and y > 800:
-                        x = x // 2
-                        y = y // 2
-                        img = img.resize((x, y), Image.ANTIALIAS)
-                    img.save(storage.path(filename), quality=90)
+                    try:
+                        img = Image.open(storage.path(filename))
+                        x, y = img.size
+                        if x > 600 and y > 800:
+                            x = x // 2
+                            y = y // 2
+                            img = img.resize((x, y), Image.ANTIALIAS)
+                        img.save(storage.path(filename), quality=90)
+                    except:
+                        pass
             empty_list = []
             good_list = []
             bad_list = []

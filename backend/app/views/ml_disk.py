@@ -68,20 +68,22 @@ class MlDiskView(View):
             filename = os.fsdecode(file)
             if filename.lower().endswith(".png") or filename.lower().endswith(
                     ".jpg") or filename.lower().endswith(".jpeg"):
-                img = Image.open(storage.path(filename))
-                x, y = img.size
-                if x > 600 and y > 800:
-                    x = x // 2
-                    y = y // 2
-                    img = img.resize((x, y), Image.ANTIALIAS)
-                img.save(storage.path(filename), quality=90)
+                try:
+                    img = Image.open(storage.path(filename))
+                    x, y = img.size
+                    if x > 600 and y > 800:
+                        x = x // 2
+                        y = y // 2
+                        img = img.resize((x, y), Image.ANTIALIAS)
+                    img.save(storage.path(filename), quality=90)
+                except:
+                    pass
         empty_list = []
         good_list = []
         bad_list = []
         animal_id = createRemoteFolder(service, "животные", folder_id)
         broken_id = createRemoteFolder(service, "битые", folder_id)
         empty_id = createRemoteFolder(service, "пустые", folder_id)
-
 
         with open(storage.path('submission.csv'), 'r') as f:
             reader = csv.reader(f, delimiter=",")

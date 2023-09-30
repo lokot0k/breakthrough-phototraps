@@ -110,7 +110,7 @@ export function Result() {
                     <MyInput filter={QualityTag.BROKEN} filterState={filter} onChangeFunc={changeFilterCheckbox}/>
                 </div>
                 <div className="buttons-container">
-                    <a><FontAwesomeIcon icon={solid("download")}/>Скачать CSV</a>
+                    <a href="/media/submission.csv" download><FontAwesomeIcon icon={solid("download")}/>Скачать CSV</a>
                     <a><FontAwesomeIcon icon={solid("download")}/>Скачать ZIP</a>
                 </div>
             </div>
