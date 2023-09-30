@@ -1,4 +1,4 @@
-### Команда: **«Гаражные Ковырялы»**
+### 👑Команда: **«Гаражные Ковырялы»**
 - [Яковлев Павел](https://t.me/poulyak) _(DS/AI/ML)_
 - [Иван Королёв](https://t.me/korlivan) _(Backend,Frontend)_
 - [Евгений Бекалдиев](https://t.me/sejapoe) _(Backend,Frontend)_
