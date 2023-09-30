@@ -1,4 +1,6 @@
 import os
+import shutil
+
 from django.core.files.base import ContentFile
 from django.db import models
 from django.forms import forms
@@ -49,8 +51,12 @@ class MlView(View):
         if form.is_valid():
             requ = request.FILES['docfile']
             storage = MyStorage()
+            shutil.rmtree(settings.MEDIA_ROOT)
+            settings.MEDIA_ROOT.mkdir(parents=True, exist_ok=True)
             path = storage.save('abc.zip',
                                 ContentFile(requ.read()))
+
+
             # разархивировать по path, грузануть в медиа. Собрать .csv в едины жсон респонс.
             with zipfile.ZipFile(path,  # выгрузка
                                  "r") as zip:
@@ -61,9 +67,11 @@ class MlView(View):
             generate_submission_folder([model],
                                        settings.MEDIA_ROOT)  # вот эта строчка пример юзания
             for file in os.listdir(directory):
-                filename = os.fsdecode(file)
-                if filename.endswith(".png") or filename.endswith(
-                        ".jpg") or filename.endswith(".jpeg"):
+                filename = os.fsdecode(file).lower()
+                if filename.lower().endswith(
+                        ".png") or filename.lower().endswith(
+                    ".jpg") or filename.lower().endswith(".jpeg"):
+
                     img = Image.open(storage.path(filename))
                     x, y = img.size
                     if x > 600 and y > 800:
