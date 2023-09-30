@@ -51,7 +51,7 @@ function Welcome() {
         const formData = new FormData();
         formData.append("docfile", file);
         try {
-            const response = await fetch("/api/do_good", {
+            const response = await fetch("/api/do_good/", {
                 method: "POST",
                 body: formData,
             });

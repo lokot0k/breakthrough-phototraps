@@ -1,8 +1,10 @@
-
 import pandas as pd
 import numpy as np
+
+from djangoProject import settings
 from ..utils.storage import MyStorage
 from tqdm import tqdm
+from django.contrib.staticfiles import finders
 
 import os
 
@@ -22,7 +24,6 @@ IMG_SIZE = (256, 256)
 SEED = 42
 torch.seed = SEED
 torch.random.seed = SEED
-
 
 
 def generate_submit(
@@ -53,14 +54,22 @@ def generate_submission_folder(models: list, link_to_folder: str) -> list:
     paths = []
     label = []
     for i in os.listdir(link_to_folder):
-        paths.append(i)
-        label.append(0)
+        ext = os.path.splitext(i)[1].lower()
+        if ext == '.png' or ext == '.jpg' or ext == '.jpeg' or ext == ".gif":
+            paths.append(i)
+            label.append(0)
     test_df = pd.DataFrame({"filename": paths, "label": label})
     test_dataset = TestDataset(test_df, link_to_folder, val_transform)
     test_loader = get_test_loader(test_dataset)
     pred = generate_submit(models, test_loader, 'third', visual=True)
     test_df["label"] = pred.astype(int)
-    # test_df.save("submission.csv",index=False)
+    test_df["broken"] = (pred == 0).astype(int)
+    test_df["empty"] = (pred == 1).astype(int)
+    test_df["animal"] = (pred == 2).astype(int)
+
+    test_df[["filename", "broken", "empty", "animal"]].to_csv(
+        st.path("submission.csv"), index=False)
+
     return [list(test_df.iloc[i].values) for i in range(len(test_df))]
 
 
@@ -72,9 +81,10 @@ def get_resnet_152(device: str = DEVICE,
     model = model.to(device)
     if ckpt_path:
         try:
-            checkpoint = torch.load(ckpt_path)
+            checkpoint = torch.load(ckpt_path, map_location=device)
             model.load_state_dict(checkpoint)
-        except:
+        except Exception as e:
+            print(e)
             print("Wrong checkpoint")
     return model
 
@@ -130,7 +140,4 @@ def get_test_loader(test_dataset: Dataset) -> DataLoader:
 device = torch.device(DEVICE)
 
 val_transform = get_test_transform()
-
-model = get_resnet_152(device, st.path("resnet(256,256).ckpt"))
-
-# r = generate_submission_folder([model], "/content/data/animal") # вот эта строчка пример юзания
+model = get_resnet_152(device, settings.STATIC_ROOT / "resnet(256,256).ckpt")

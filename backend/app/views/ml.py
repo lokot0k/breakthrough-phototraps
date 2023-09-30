@@ -9,6 +9,7 @@ import zipfile
 import csv
 from PIL import Image
 
+from app.models.ml_model import generate_submission_folder, model
 from app.utils.storage import MyStorage
 
 
@@ -28,7 +29,7 @@ class MlView(View):
         good_list = []
         bad_list = []
         with open(storage.path('submission.csv'), 'r') as f:
-            reader = csv.reader(f, delimiter=" ")
+            reader = csv.reader(f, delimiter=",")
             for row in reader:
                 if row[1] == "1":
                     bad_list.append(f"/media/{row[0]}")
@@ -37,9 +38,11 @@ class MlView(View):
                 elif row[3] == "1":
                     good_list.append(f"/media/{row[0]}")
 
-        return JsonResponse(
-            {"success": "true", "empty": empty_list, "animal": good_list,
-             "broken": bad_list, "csv": f"/media/submission.csv"})
+        # return JsonResponse(
+        #     {"success": True, "empty": empty_list, "animal": good_list,
+        #      "broken": bad_list, "csv": f"/media/submission.csv"})
+        return JsonResponse({"empty": empty_list, "animal": good_list,
+                             "broken": bad_list})
 
     def post(self, request: HttpRequest, *args, **kwargs) -> JsonResponse:
         form = DocumentForm(request.POST, request.FILES)
@@ -55,6 +58,8 @@ class MlView(View):
 
             directory = os.fsencode(settings.MEDIA_ROOT)
 
+            generate_submission_folder([model],
+                                       settings.MEDIA_ROOT)  # вот эта строчка пример юзания
             for file in os.listdir(directory):
                 filename = os.fsdecode(file)
                 if filename.endswith(".png") or filename.endswith(
@@ -70,8 +75,11 @@ class MlView(View):
             good_list = []
             bad_list = []
             with open(storage.path('submission.csv'), 'r') as f:
-                reader = csv.reader(f, delimiter=" ")
+                reader = csv.reader(f, delimiter=",")
                 for row in reader:
+                    print(row)
+                    if not row or len(row) != 4:
+                        continue
                     if row[1] == "1":
                         bad_list.append(f"/media/{row[0]}")
                     elif row[2] == "1":

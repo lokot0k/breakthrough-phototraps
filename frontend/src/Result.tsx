@@ -22,17 +22,13 @@ type Data = {
 export const loader = async (): Promise<Data | null> => {
     // ====== api request ========
 
-    // const response = await fetch("/api/do_good", {
-    //     method: "GET",
-    // })
-    // return response.ok ? await response.json() as Data : null;
+    const response = await fetch("/api/do_good/", {
+        method: "GET",
+    })
+    let x = await response.json();
+    return response.ok ? x as Data : null;
 
 
-    return {
-        broken: ['/image1.jpg', '/image2.jpg', '/broken_115.JPG'],
-        empty: ['/image3.jpg', '/image4.jpg'],
-        animal: ['/image5.jpg', '/image6.jpg'],
-    }
 }
 
 const tagToColor = {

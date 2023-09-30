@@ -1,6 +1,5 @@
 import io
 import os
-
 from django.http import HttpRequest, JsonResponse, HttpResponse
 from django.views import View
 from google.auth.transport.requests import Request
@@ -18,6 +17,7 @@ from oauth2client.client import GoogleCredentials
 
 from app.utils.drive_downloader import download_files
 from app.utils.storage import MyStorage
+from djangoProject import settings
 
 
 class MlDiskView(View):
@@ -32,8 +32,8 @@ class MlDiskView(View):
         # The file token.json stores the user's access and refresh tokens, and is
         # created automatically when the authorization flow completes for the first
         # time.
-        if os.path.exists(st.path('token.json')):
-            creds = Credentials.from_authorized_user_file(st.path('token.json'),
+        if os.path.exists(settings.STATIC_ROOT / "token.json"):
+            creds = Credentials.from_authorized_user_file(settings.STATIC_ROOT / "token.json",
                                                           SCOPES)
         # If there are no (valid) credentials available, let the user log in.
         if not creds or not creds.valid:
@@ -41,10 +41,10 @@ class MlDiskView(View):
                 creds.refresh(Request())
             else:
                 flow = InstalledAppFlow.from_client_secrets_file(
-                    st.path('client_secret.json'), SCOPES)
+                    settings.STATIC_ROOT / "client_secret.json", SCOPES)
                 creds = flow.run_local_server(port=0)
             # Save the credentials for the next run
-            with open(st.path('token.json'), 'w') as token:
+            with open(settings.STATIC_ROOT / "token.json", 'w') as token:
                 token.write(creds.to_json())
 
         service = build('drive', 'v3', credentials=creds)
