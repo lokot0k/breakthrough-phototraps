@@ -84,6 +84,11 @@ class MlView(View):
             empty_list = []
             good_list = []
             bad_list = []
+
+            paths = ["a/", "b/", "e/", "ab/", "ae/", "be/", "abe/"]
+
+            for path in paths:
+                (settings.MEDIA_ROOT / path).mkdir(parents=True, exist_ok=True)
             with open(storage.path('submission.csv'), 'r') as f:
                 reader = csv.reader(f, delimiter=",")
                 for row in reader:
@@ -92,10 +97,22 @@ class MlView(View):
                         continue
                     if row[1] == "1":
                         bad_list.append(f"/media/{row[0]}")
+                        for path in paths:
+                            if 'b' in path:
+                                shutil.copy(storage.path(row[0]), storage.path(path + row[0]))
                     elif row[2] == "1":
                         empty_list.append(f"/media/{row[0]}")
+                        for path in paths:
+                            if 'e' in path:
+                                shutil.copy(storage.path(row[0]), storage.path(path + row[0]))
                     elif row[3] == "1":
                         good_list.append(f"/media/{row[0]}")
+                        for path in paths:
+                            if 'a' in path:
+                                shutil.copy(storage.path(row[0]), storage.path(path + row[0]))
+
+            for path in paths:
+                shutil.make_archive(storage.path(path), "zip", storage.path(path))
 
             return JsonResponse(
                 {"success": "true", "empty": empty_list, "animal": good_list,

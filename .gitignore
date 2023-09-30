@@ -1,1 +1,4 @@
 /backend/static/resnet(256,256).ckpt
+/backend/media/
+/backend/static/token.json
+__pycache__

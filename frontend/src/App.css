@@ -77,6 +77,7 @@ html {
     text-decoration-line: underline;
 }
 
+.image-grid-item > img.thumbnail-animal,
 .image-gallery-thumbnail.thumbnail-animal.active,
 .image-gallery-thumbnail.thumbnail-animal:hover {
     border-color: #4C9F70;
@@ -86,6 +87,7 @@ html {
 /*    background-color: rgba(76, 159, 112, 0.18) !important;*/
 /*}*/
 
+.image-grid-item > img.thumbnail-broken,
 .image-gallery-thumbnail.thumbnail-broken.active,
 .image-gallery-thumbnail.thumbnail-broken:hover {
     border-color: #FF674D;
@@ -94,7 +96,7 @@ html {
 /*.original-broken .image-gallery-description {*/
 /*    background-color: rgba(255, 103, 77, 0.18) !important;*/
 /*}*/
-
+.image-grid-item > img.thumbnail-empty,
 .image-gallery-thumbnail.thumbnail-empty.active,
 .image-gallery-thumbnail.thumbnail-empty:hover {
     border-color: #F8FA90;
@@ -120,11 +122,13 @@ html {
     font-weight: bold;
     font-size: 1rem;
     float: left;
+    margin-left: 15px;
     margin-right: 20px;
     margin-bottom: 0;
 }
 
 .buttons-container a {
+    text-decoration: none !important;
     margin-right: 20px;
     border: none;
     border-radius: 5px;
@@ -132,6 +136,7 @@ html {
     padding: 5px 15px;
     color: #FFFFFF !important;
     cursor: pointer;
+
 }
 
 .buttons-container a:hover {
@@ -184,7 +189,7 @@ html {
 .Result {
     margin: 15px;
     background-color: #FFFFFF;
-    height: 90vh;
+    min-height: 95vh;
     border-radius: 20px;
 }
 
@@ -208,7 +213,7 @@ html {
 
 .circle {
     height: 100%;
-    right: 0px;
+    right: 0;
     position: absolute;
     border: dotted 20px rgba(197, 197, 197, 0);
     border-top-color: #FFB140;
@@ -236,6 +241,9 @@ html {
 }
 
 .file-url {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     margin-top: 5px;
     border-radius: 10px;
     background-color: #333333;
@@ -265,4 +273,42 @@ html {
 
 .file-url-input::placeholder {
     /*color: ;*/
+}
+
+.image-grid-item {
+    padding: 15px;
+    transition: all 0.2s ease-in-out;
+    cursor: pointer;
+}
+
+.image-grid-item img {
+    width: 332px;
+    border: 3px solid transparent;
+    border-radius: 5px;
+}
+
+.image-grid {
+    margin-left: 15px;
+    display: grid;
+    grid-template-rows: repeat(auto-fill, 280px);
+    grid-template-columns: repeat(auto-fill, 362px);
+}
+
+.image-grid-item:hover {
+    transform: scale(1.05);
+}
+
+.close-btn {
+    border: none;
+    background-color: transparent;
+    font-size: 40px;
+    position: absolute;
+    color: #404E7C;
+    left: 90%;
+    z-index: 4;
+}
+
+.image-gallery-icon {
+    color: #404E7C !important;
+    filter: none !important;
 }

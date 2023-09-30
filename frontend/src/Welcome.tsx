@@ -122,14 +122,14 @@ function Welcome() {
                 <label id="label-file-upload" htmlFor="file-upload" className={dragActive ? "drag-active" : ""}>
                     <div>
                         <button onClick={onButtonClick} className="upload-button"><FontAwesomeIcon
-                            icon={solid("upload")} bounce/>zip
+                            icon={solid("upload")} bounce/> Загрузить архив
                         </button>
                     </div>
                 </label>
                 <span className="or">или</span>
                 <br/>
                 <div className="file-url">
-                    <input className="file-url-input" placeholder="Ссылка на гугл диск" value={url}
+                    <input className="file-url-input" placeholder="Ссылка на гугл диск..." value={url}
                            onChange={event => setUrl(event.target.value)}/>
                     <span className="file-url-button" onClick={onUrlSend}><FontAwesomeIcon
                         icon={solid("arrow-right")}/></span>

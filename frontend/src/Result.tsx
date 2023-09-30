@@ -32,16 +32,32 @@ export const loader = async (): Promise<Data | null> => {
 
 }
 
-const tagToColor = {
-    [QualityTag.ANIMAL]: "#28a745",
-    [QualityTag.EMPTY]: "#ffc107",
-    [QualityTag.BROKEN]: "#dc3545",
-}
 
 const tagToDescription = {
     [QualityTag.ANIMAL]: "Животное",
-    [QualityTag.EMPTY]: "Пустое",
-    [QualityTag.BROKEN]: "Поврежеденное",
+    [QualityTag.EMPTY]: "Пусто",
+    [QualityTag.BROKEN]: "С дефектом",
+}
+
+const filterToZipUrl: { [key: number]: string } = {
+    0: "", // all false
+    1: "/media/a.zip", // animal
+    2: "/media/e.zip", // empty
+    3: "/media/ae.zip", // animal empty
+    4: "/media/b.zip", // broken
+    5: "/media/ab.zip", // animal broken
+    6: "/media/be.zip", // empty broken
+    7: "/media/abe.zip", // all true
+}
+
+const getUrl = (filter: { [key in QualityTag]: boolean }) => {
+    let result = 0;
+    for (const key in filter) {
+        if (filter[key as QualityTag]) {
+            result += 1 << (key === QualityTag.ANIMAL ? 0 : key === QualityTag.EMPTY ? 1 : 2)
+        }
+    }
+    return filterToZipUrl[result]
 }
 
 
@@ -57,7 +73,18 @@ function MyInput({filter, filterState, onChangeFunc}: {
     </>;
 }
 
+function downloadFile(url: string, filename: string) {
+    const link = document.createElement('a');
+    link.href = `http://localhost:8000${url}`;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
 export function Result() {
+    const [chosenImage, setChosenImage] = useState(null as null | number);
+    const [showGallery, setShowGallery] = useState(false);
     const [filterFunc, setFilterFunc] = useState(() => (_: ExtendedReactImageGalleryItem) => true)
     const [filter, setFilter] = useState({
         [QualityTag.ANIMAL]: true,
@@ -80,6 +107,7 @@ export function Result() {
             return newFilter[item.originalTag as QualityTag]
         })
         setFilter(newFilter)
+        setChosenImage(null)
     }
 
     const result = [] as ExtendedReactImageGalleryItem[]
@@ -87,7 +115,7 @@ export function Result() {
         result.push(...loadedData[key as QualityTag].map(value => ({
             original: value,
             thumbnail: value,
-            originalHeight: 600,
+            originalHeight: 750,
             description: tagToDescription[key as QualityTag],
             originalTag: key as QualityTag,
             thumbnailClass: `thumbnail-${key}`,
@@ -110,13 +138,26 @@ export function Result() {
                     <MyInput filter={QualityTag.BROKEN} filterState={filter} onChangeFunc={changeFilterCheckbox}/>
                 </div>
                 <div className="buttons-container">
-                    <a href="/media/submission.csv" download><FontAwesomeIcon icon={solid("download")}/>Скачать CSV</a>
-                    <a><FontAwesomeIcon icon={solid("download")}/>Скачать ZIP</a>
+                    <a href="#" onClick={() => downloadFile("/media/submission.csv", "submission.csv")}><FontAwesomeIcon
+                        icon={solid("download")}/>Скачать CSV</a>
+                    <a href="#" onClick={() => downloadFile(getUrl(filter), "Today.zip")}><FontAwesomeIcon
+                        icon={solid("download")}/>ЕБЕЙШАЯ КНОПКА</a>
                 </div>
             </div>
-            <div className="image-gallery-container">
-                <ImageGallery items={result.filter(filterFunc)} lazyLoad thumbnailPosition="left"/>
-            </div>
+            {chosenImage !== null ? <div className="image-gallery-container">
+                    <button className="close-btn" onClick={_ => setChosenImage(null)}><FontAwesomeIcon
+                        icon={solid("close")}/></button>
+                    <ImageGallery items={result.filter(filterFunc)} lazyLoad thumbnailPosition="left"
+                                  startIndex={chosenImage} />
+                </div> :
+                <div className="image-grid">
+                    {images.filter(filterFunc).map((item, index) => <div key={index} className="image-grid-item">
+                            <img src={item.thumbnail} alt={item.description} className={`thumbnail-${item.originalTag}`}
+                                 onClick={event => setChosenImage(index)}/>
+                        </div>
+                    )}
+                </div>
+            }
         </div>
     </div>;
 }
