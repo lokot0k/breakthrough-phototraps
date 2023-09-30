@@ -3,6 +3,7 @@ import './App.css';
 import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
 import {solid} from "@fortawesome/fontawesome-svg-core/import.macro";
 import {Result} from "./Result";
+import {redirect, useNavigate} from "react-router-dom";
 
 interface Response {
     success: boolean
@@ -15,6 +16,7 @@ function Welcome() {
     const [data, setData] = useState<Response | null>(null)
     const [dragActive, setDragActive] = useState(false)
     const inputRef: React.MutableRefObject<null | HTMLInputElement> = useRef(null);
+    const nav = useNavigate();
 
     const handleDrag: DragEventHandler = (e) => {
         e.preventDefault()
@@ -57,7 +59,8 @@ function Welcome() {
             });
             if (response.ok) {
                 const body = await response.json() as Response
-                console.log(body)
+                // добавить крутилку
+                nav("/result");
             }
         } catch (e) {
             console.log(e)
@@ -69,6 +72,7 @@ function Welcome() {
     const onButtonClick = () => {
         inputRef.current?.click();
     };
+
 
     return !
         data ?
