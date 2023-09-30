@@ -1,4 +1,4 @@
-import {LoaderFunctionArgs, Navigate, useLoaderData} from "react-router-dom";
+import {LoaderFunctionArgs, Navigate, useLoaderData, useNavigate} from "react-router-dom";
 import ImageGallery, {ReactImageGalleryItem} from "react-image-gallery";
 import {ChangeEventHandler, useEffect, useState} from "react";
 import {Button, Form} from "react-bootstrap";
@@ -83,6 +83,7 @@ function downloadFile(url: string, filename: string) {
 }
 
 export function Result() {
+    const nav = useNavigate();
     const [chosenImage, setChosenImage] = useState(null as null | number);
     const [showGallery, setShowGallery] = useState(false);
     const [filterFunc, setFilterFunc] = useState(() => (_: ExtendedReactImageGalleryItem) => true)
@@ -127,7 +128,9 @@ export function Result() {
 
     return <div className="App">
         <header className="App-header">
-            <p>Тигерекский заповедник</p>
+            <span className="leave-btn"  onClick={() => nav("/")}><FontAwesomeIcon className="leave-icon" icon={solid("arrow-right-from-bracket")}/> Выход</span>
+            {/**/}
+            <p>Тигирекский заповедник</p>
         </header>
         <div className="Result">
             <div className="result-header">
@@ -141,7 +144,7 @@ export function Result() {
                     <a href="#" onClick={() => downloadFile("/media/submission.csv", "submission.csv")}><FontAwesomeIcon
                         icon={solid("download")}/>Скачать CSV</a>
                     <a href="#" onClick={() => downloadFile(getUrl(filter), "Today.zip")}><FontAwesomeIcon
-                        icon={solid("download")}/>ЕБЕЙШАЯ КНОПКА</a>
+                        icon={solid("download")}/>Скачать архив</a>
                 </div>
             </div>
             {chosenImage !== null ? <div className="image-gallery-container">

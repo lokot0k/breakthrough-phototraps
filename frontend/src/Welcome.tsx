@@ -122,7 +122,7 @@ function Welcome() {
                 <label id="label-file-upload" htmlFor="file-upload" className={dragActive ? "drag-active" : ""}>
                     <div>
                         <button onClick={onButtonClick} className="upload-button"><FontAwesomeIcon
-                            icon={solid("upload")} bounce/> Загрузить архив
+                            icon={solid("upload")} bounce/>Загрузить архив
                         </button>
                     </div>
                 </label>
