@@ -61,8 +61,8 @@ class MlDiskView(View):
         d = download_files(service, folder_id, st.path(""))
         directory = os.fsencode(settings.MEDIA_ROOT)
         storage = MyStorage()
-        # generate_submission_folder([model],
-        #                            settings.MEDIA_ROOT)
+        generate_submission_folder([model],
+                                   settings.MEDIA_ROOT)
         for file in os.listdir(directory):
             filename = os.fsdecode(file)
             if filename.lower().endswith(".png") or filename.lower().endswith(
@@ -80,22 +80,21 @@ class MlDiskView(View):
         animal_id = createRemoteFolder(service, "животные", folder_id)
         broken_id = createRemoteFolder(service, "битые", folder_id)
         empty_id = createRemoteFolder(service, "пустые", folder_id)
-        moveFile(service, d['bocchi_hot.jpeg'], empty_id)
-        # with open(storage.path('submission.csv'), 'r') as f:
-        #     reader = csv.reader(f, delimiter=",")
-        #     for row in reader:
-        #         print(row)
-        #         if not row or len(row) != 4:
-        #             continue
-        #         if row[1] == "1":
-        #             bad_list.append(f"/media/{row[0]}")
-        #             moveFile(service, d[row[0]], broken_id)
-        #         elif row[2] == "1":
-        #             empty_list.append(f"/media/{row[0]}")
-        #             moveFile(service, d[row[0]], empty_id)
-        #         elif row[3] == "1":
-        #             good_list.append(f"/media/{row[0]}")
-        #             moveFile(service, d[row[0]], animal_id)
+
+        with open(storage.path('submission.csv'), 'r') as f:
+            reader = csv.reader(f, delimiter=",")
+            for row in reader:
+                if not row or len(row) != 4:
+                    continue
+                if row[1] == "1":
+                    bad_list.append(f"/media/{row[0]}")
+                    moveFile(service, d[row[0]], broken_id)
+                elif row[2] == "1":
+                    empty_list.append(f"/media/{row[0]}")
+                    moveFile(service, d[row[0]], empty_id)
+                elif row[3] == "1":
+                    good_list.append(f"/media/{row[0]}")
+                    moveFile(service, d[row[0]], animal_id)
 
         return JsonResponse(
             {"empty": empty_list, "animal": good_list,
