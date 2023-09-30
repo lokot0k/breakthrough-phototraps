@@ -1,18 +1,12 @@
-/*.Result {*/
-/*    width: 65%;*/
-/*    display: block;*/
-/*}*/
-
-/*.image-gallery {*/
-/*    height: 65%;*/
-/*}*/
-
-/*App*/
-.App {
+.Welcome {
     text-align: center;
 }
 
-.App-header {
+html {
+    background-color: #E8EBF3;
+}
+
+.Welcome-header {
     background-color: #282c34;
     min-height: 100vh;
     display: flex;
@@ -83,11 +77,114 @@
     text-decoration-line: underline;
 }
 
-.filter-container {
-    padding: 20px;
+.image-gallery-thumbnail.thumbnail-animal.active,
+.image-gallery-thumbnail.thumbnail-animal:hover {
+    border-color: #4C9F70;
+}
+
+.original-animal .image-gallery-description {
+    background-color: rgba(76, 159, 112, 0.18) !important;
+}
+
+.image-gallery-thumbnail.thumbnail-broken.active,
+.image-gallery-thumbnail.thumbnail-broken:hover {
+    border-color: #FF674D;
+}
+
+.original-broken .image-gallery-description {
+    background-color: rgba(255, 103, 77, 0.18) !important;
+}
+
+.image-gallery-thumbnail.thumbnail-empty.active,
+.image-gallery-thumbnail.thumbnail-empty:hover {
+    border-color: #F8FA90;
+}
+
+.original-empty .image-gallery-description {
+    background-color: rgba(248, 250, 144, 0.18) !important;
+}
+
+.result-header {
+    display: flex;
+    padding: 15px;
+    background-color: #E8EBF366;
+    justify-content: space-between;
 }
 
 .filter-container label {
     margin-left: 5px;
     margin-right: 10px;
 }
+
+.filter-container p {
+    font-weight: bold;
+    font-size: 1rem;
+    float: left;
+    margin-right: 20px;
+    margin-bottom: 0;
+}
+
+.buttons-container button {
+    margin-right: 20px;
+    border: none;
+    border-radius: 5px;
+    background: #404E7C;
+    padding: 5px 15px;
+    color: #FFFFFF;
+}
+
+.buttons-container button:hover {
+    background: #5C6B9F;
+}
+
+.buttons-container button:active {
+    background: #404E7C;
+}
+
+.buttons-container svg {
+    margin-right: 5px;
+}
+
+.image-gallery-container {
+    padding: 15px;
+    /*height: 800px;*/
+}
+
+.image-gallery-container .image-gallery {
+    width: 90%;
+    margin: 0 auto;
+}
+
+.image-gallery-container .image-gallery-description {
+    font-size: 20px;
+    border-radius: 10px;
+    border-width: 2px;
+    border-style: solid;
+    border-color: #404E7C;
+    /*background-color: #FFFFFF00 !important;*/
+    color: #404E7C !important;
+}
+
+.App {
+    background-color: #E8EBF3;
+}
+
+.App-header {
+    text-align: center;
+    min-height: 5vh;
+    font-size: 2rem;
+    font-weight: bold;
+}
+
+.App-header p {
+    margin: 5px 0 0 0;
+}
+
+.Result {
+    margin: 15px;
+    background-color: #FFFFFF;
+    height: 90vh;
+    border-radius: 20px;
+}
+
+

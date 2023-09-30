@@ -1,100 +1,125 @@
 import {LoaderFunctionArgs, Navigate, useLoaderData} from "react-router-dom";
 import ImageGallery, {ReactImageGalleryItem} from "react-image-gallery";
-import {ChangeEventHandler, useState} from "react";
-import {Form} from "react-bootstrap";
+import {ChangeEventHandler, useEffect, useState} from "react";
+import {Button, Form} from "react-bootstrap";
+import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
+import {solid} from "@fortawesome/fontawesome-svg-core/import.macro";
+
 
 enum QualityTag {
-    NONE = "none",
     ANIMAL = "animal",
     BROKEN = "broken",
     EMPTY = "empty"
 }
 
-interface ImageData {
-    url: string
-    qualityTag: QualityTag
+type ExtendedReactImageGalleryItem = ReactImageGalleryItem & { originalTag: QualityTag }
+
+type Data = {
+    [key in QualityTag]: string[]
 }
 
-interface LoadedData {
-    images: ImageData[]
-    archives: Record<QualityTag, string>
-}
 
-export const loader = async ({request}: LoaderFunctionArgs): Promise<LoadedData | null> => {
-    const query = new URLSearchParams(request.url.split("?").slice(-1)[0])
-
-    const uuid = query.get("uuid");
-    if (!uuid) return null;
-    const page = +(query.get("page") || 1)
-
+export const loader = async (): Promise<Data | null> => {
     // ====== api request ========
 
+    // const response = await fetch("/api/do_good", {
+    //     method: "GET",
+    // })
+    // return response.ok ? await response.json() as Data : null;
+
+
     return {
-        images: [
-            {url: "/image1.jpg", qualityTag: QualityTag.ANIMAL},
-            {url: "/image2.jpg", qualityTag: QualityTag.BROKEN},
-            {url: "/image3.jpg", qualityTag: QualityTag.EMPTY},
-        ].concat(Array(200).fill({url: "/image1.jpg", qualityTag: "animal"})) as ImageData[],
-        archives: {
-            "animal": "archive_good.zip",
-            "broken": "archive_so-so.zip",
-            "empty": "archive_bad.zip",
-            "none": ""
-        },
+        broken: ['/image1.jpg', '/image2.jpg', '/broken_115.JPG'],
+        empty: ['/image3.jpg', '/image4.jpg'],
+        animal: ['/image5.jpg', '/image6.jpg'],
     }
+}
+
+const tagToColor = {
+    [QualityTag.ANIMAL]: "#28a745",
+    [QualityTag.EMPTY]: "#ffc107",
+    [QualityTag.BROKEN]: "#dc3545",
+}
+
+const tagToDescription = {
+    [QualityTag.ANIMAL]: "Животное",
+    [QualityTag.EMPTY]: "Пустое",
+    [QualityTag.BROKEN]: "Поврежеденное",
 }
 
 
 function MyInput({filter, filterState, onChangeFunc}: {
     filter: QualityTag,
-    filterState: QualityTag,
+    filterState: { [key in QualityTag]: boolean },
     onChangeFunc: ChangeEventHandler<HTMLInputElement>
 }) {
     return <>
-        <input type="radio" value={filter} id={`radio-${filter}`} checked={filterState === filter}
+        <input type="checkbox" id={`cb-${filter}`} checked={filterState[filter]}
                onChange={onChangeFunc}/>
-        <label htmlFor={`radio-${filter}`}>{filter[0].toUpperCase() + filter.slice(1)}</label>
+        <label htmlFor={`cb-${filter}`}>{tagToDescription[filter]}</label>
     </>;
 }
 
 export function Result() {
-    const [filterFunc, setFilterFunc] = useState(() => (_: ImageData) => true)
-    const [filter, setFilter] = useState(QualityTag.NONE)
-    const loadedData = useLoaderData() as LoadedData | null
+    const [filterFunc, setFilterFunc] = useState(() => (_: ExtendedReactImageGalleryItem) => true)
+    const [filter, setFilter] = useState({
+        [QualityTag.ANIMAL]: true,
+        [QualityTag.EMPTY]: true,
+        [QualityTag.BROKEN]: true,
+    })
+
+    const loadedData = useLoaderData() as Data | null
 
     if (!loadedData) return <Navigate to="/" replace/>
 
 
-    const changeFilterRadio: ChangeEventHandler<HTMLInputElement> = (e) => {
-        const value = e.target.value as QualityTag;
-        if (value === QualityTag.NONE) {
-            setFilterFunc(() => (_: ImageData) => true)
-        } else {
-            setFilterFunc(() => {
-                return (data: ImageData) => {
-                    console.log(`${data.qualityTag} ${value}`)
-                    return data.qualityTag === value;
-                };
-            })
-        }
-        setFilter(value as QualityTag)
+    const changeFilterCheckbox: ChangeEventHandler<HTMLInputElement> = (e) => {
+        const value = e.target.id.slice(3) as QualityTag;
+        const newFilter = {
+            ...filter,
+            [value]: e.target.checked,
+        };
+        setFilterFunc(() => (item: ExtendedReactImageGalleryItem) => {
+            return newFilter[item.originalTag as QualityTag]
+        })
+        setFilter(newFilter)
     }
 
-    const images: (ReactImageGalleryItem & ImageData)[] = loadedData.images.map(value => {
-        return {
-            original: value.url,
-            thumbnail: value.url,
-            description: value.qualityTag,
-            ...value
-        }
-    })
+    const result = [] as ExtendedReactImageGalleryItem[]
+    for (const key in loadedData) {
+        result.push(...loadedData[key as QualityTag].map(value => ({
+            original: value,
+            thumbnail: value,
+            originalHeight: 600,
+            description: tagToDescription[key as QualityTag],
+            originalTag: key as QualityTag,
+            thumbnailClass: `thumbnail-${key}`,
+            originalClass: `original-${key}`,
+        })))
+    }
+    const images = result.sort((a, b) => a.original.localeCompare(b.original))
 
-    return <div className="Result">
-        <div className="filter-container">
-            <MyInput filter={QualityTag.ANIMAL} filterState={filter} onChangeFunc={changeFilterRadio}/>
-            <MyInput filter={QualityTag.EMPTY} filterState={filter} onChangeFunc={changeFilterRadio}/>
-            <MyInput filter={QualityTag.BROKEN} filterState={filter} onChangeFunc={changeFilterRadio}/>
+
+    return <div className="App">
+        <header className="App-header">
+            <p>Тигерекский заповедник</p>
+        </header>
+        <div className="Result">
+            <div className="result-header">
+                <div className="filter-container">
+                    <p>Фильтры</p>
+                    <MyInput filter={QualityTag.ANIMAL} filterState={filter} onChangeFunc={changeFilterCheckbox}/>
+                    <MyInput filter={QualityTag.EMPTY} filterState={filter} onChangeFunc={changeFilterCheckbox}/>
+                    <MyInput filter={QualityTag.BROKEN} filterState={filter} onChangeFunc={changeFilterCheckbox}/>
+                </div>
+                <div className="buttons-container">
+                    <button><FontAwesomeIcon icon={solid("download")}/>Скачать CSV</button>
+                    <button><FontAwesomeIcon icon={solid("download")}/>Скачать ZIP</button>
+                </div>
+            </div>
+            <div className="image-gallery-container">
+                <ImageGallery items={result.filter(filterFunc)} lazyLoad thumbnailPosition="left"/>
+            </div>
         </div>
-        <ImageGallery items={images.filter(filterFunc)} lazyLoad thumbnailPosition="left"/>
     </div>;
 }
