@@ -7,7 +7,7 @@
 
 ### Задача: **Классификация снимков с фотоловушек**
 
-Ссылка на колаб - [Вот](https://colab.research.google.com/drive/1OsO4ACNppBdz0uctuU7H_0PaKvn6QwF4?usp=sharing)
+Ссылка на [колаб](https://colab.research.google.com/drive/1OsO4ACNppBdz0uctuU7H_0PaKvn6QwF4?usp=sharing)
 
 
 Обученные веса моделей скачиваются в colabе
@@ -26,7 +26,7 @@ Python, Pytorch, RoboFlow, Yolov8, ResNet, DenseNet, augmentations, class balanc
 Алгоритм построен из композиции нескольких моделей, которые вместе образуют уникальное решение для задачи классификации сников с фотоловушек
 
 ## Тестирование модели 
-В [Colab](https://colab.research.google.com/drive/1OsO4ACNppBdz0uctuU7H_0PaKvn6QwF4?usp=sharing) Вы можете познакомаиться с тестированием модели и попробовать её запустить
+В [Google Colaboratory](https://colab.research.google.com/drive/1OsO4ACNppBdz0uctuU7H_0PaKvn6QwF4?usp=sharing) Вы можете познакомаиться с тестированием модели и попробовать её запустить
 
 ## Равзертка веб-приложения
 ### Клиентская часть
